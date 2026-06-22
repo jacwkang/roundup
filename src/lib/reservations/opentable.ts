@@ -1,0 +1,1 @@
+export { fetchOpenTableAvailability } from "./resy";
