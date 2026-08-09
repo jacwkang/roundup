@@ -112,6 +112,24 @@ function migrate(sqlite: Database.Database) {
       book_url TEXT,
       created_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS plan_results (
+      id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL REFERENCES hangout_plans(id) ON DELETE CASCADE,
+      options_json TEXT NOT NULL,
+      generated_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS option_votes (
+      id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL REFERENCES hangout_plans(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      option_id TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS option_votes_unique
+      ON option_votes(plan_id, user_id, option_id);
   `);
 }
 

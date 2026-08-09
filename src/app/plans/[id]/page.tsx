@@ -1,15 +1,15 @@
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { getPlanWithParticipants } from "@/lib/plans/service";
+import { getLatestPlanResults } from "@/lib/plans/results";
 import { ParticipantList } from "@/components/ParticipantList";
 import { PlanDashboard } from "@/components/PlanDashboard";
+import { VotePanel } from "@/components/VotePanel";
 
 export default async function PlanPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ sent?: string }>;
 }) {
   const session = await auth();
   if (!session?.user) {
@@ -17,7 +17,6 @@ export default async function PlanPage({
   }
 
   const { id } = await params;
-  const { sent } = await searchParams;
   const data = await getPlanWithParticipants(id);
 
   if (!data) {
@@ -33,14 +32,11 @@ export default async function PlanPage({
     redirect("/");
   }
 
-  return (
-    <div className="space-y-6">
-      {sent === "1" && (
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
-          Proposal email sent to all participants!
-        </div>
-      )}
+  const results = await getLatestPlanResults(id);
+  const showVoting = results !== null && data.plan.status === "voting";
 
+  return (
+    <div className="space-y-6 pb-8">
       {isOrganizer ? (
         <PlanDashboard
           planId={data.plan.id}
@@ -48,13 +44,21 @@ export default async function PlanPage({
           city={data.plan.city}
           status={data.plan.status}
           participants={data.participants}
+          hasResults={showVoting}
         />
       ) : (
-        <div className="space-y-4">
-          <h1 className="text-2xl font-bold">{data.plan.title}</h1>
-          <p className="text-muted">
-            You&apos;re connected. Waiting for the organizer to find times and send a proposal.
-          </p>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold">{data.plan.title}</h1>
+            <p className="text-muted">{data.plan.city}</p>
+          </div>
+          {showVoting ? (
+            <VotePanel planId={data.plan.id} />
+          ) : (
+            <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted text-center">
+              Waiting for the organizer to generate hangout options. Check back soon!
+            </div>
+          )}
         </div>
       )}
 

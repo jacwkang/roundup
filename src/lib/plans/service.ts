@@ -17,6 +17,11 @@ import { queryFreeBusy } from "@/lib/google/calendar";
 import { discoverActivities } from "@/lib/discovery";
 import { pollReservationsForPlan, getStoredReservations } from "@/lib/reservations";
 import { generateSuggestions } from "@/lib/ai/suggest";
+import {
+  buildVotableOptions,
+  savePlanResults,
+  getLatestPlanResults,
+} from "@/lib/plans/results";
 import type { TimeSlot, PlanPreferences } from "@/types";
 
 export async function getPlanWithParticipants(planId: string) {
@@ -155,8 +160,13 @@ export async function runFullSuggestionPipeline(planId: string) {
     reservations,
   });
 
-  return { slots, restaurants, events, reservations, suggestions };
+  const options = buildVotableOptions(suggestions, slots, reservations);
+  await savePlanResults(planId, options);
+
+  return { slots, restaurants, events, reservations, suggestions, options };
 }
+
+export { getLatestPlanResults };
 
 export async function getStoredSuggestionInputs(planId: string) {
   const slots = await getLatestSlots(planId);

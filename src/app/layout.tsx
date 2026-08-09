@@ -11,7 +11,13 @@ const geistSans = Geist({
 
 export const metadata: Metadata = {
   title: "Hangout Planner",
-  description: "Find times to hang out with friends using Google Calendar and AI",
+  description: "Connect calendars, generate hangout options, and vote with friends",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -24,7 +30,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} antialiased min-h-screen`}>
         <Providers>
           <Header />
-          <main className="mx-auto max-w-3xl px-4 py-8">{children}</main>
+          <main className="mx-auto max-w-lg px-4 py-6 sm:max-w-3xl sm:py-8">{children}</main>
         </Providers>
       </body>
     </html>

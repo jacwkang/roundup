@@ -5,7 +5,7 @@ export async function Header() {
 
   return (
     <header className="border-b border-border bg-card">
-      <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
+      <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3 sm:max-w-3xl sm:py-4">
         <a href="/" className="text-lg font-semibold tracking-tight">
           Hangout Planner
         </a>

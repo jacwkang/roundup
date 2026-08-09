@@ -11,18 +11,18 @@ export default async function HomePage() {
           Plan hangouts that actually happen
         </h1>
         <p className="text-lg text-muted max-w-xl">
-          Connect Google Calendar, find times everyone is free, discover restaurants
-          and local events, and send a proposal email — all in one place.
+          Share a link in your group chat, connect Google Calendar, and vote on
+          hangout options — restaurants, events, and times that work for everyone.
         </p>
       </section>
 
       <section className="rounded-xl border border-border bg-card p-6 space-y-4">
         <h2 className="font-semibold">How it works</h2>
-        <ol className="list-decimal list-inside space-y-2 text-muted">
-          <li>Create a hangout plan and invite friends by email</li>
-          <li>Friends connect their Google Calendar via invite link</li>
-          <li>We find mutual free time and suggest restaurants & events</li>
-          <li>Review AI suggestions and send a proposal email</li>
+        <ol className="list-decimal list-inside space-y-2 text-muted text-sm sm:text-base">
+          <li>Create a plan and share the invite link in your group chat</li>
+          <li>Friends sign in with Google to connect their calendar</li>
+          <li>When enough people have joined, tap <strong>Generate results</strong></li>
+          <li>Everyone votes on their favorite option on the plan page</li>
         </ol>
       </section>
 

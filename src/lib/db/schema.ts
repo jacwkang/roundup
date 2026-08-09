@@ -29,7 +29,7 @@ export const hangoutPlans = sqliteTable("hangout_plans", {
   minDurationMinutes: integer("min_duration_minutes").notNull().default(120),
   preferencesJson: text("preferences_json").default("{}"),
   status: text("status", {
-    enum: ["draft", "collecting", "ready", "sent"],
+    enum: ["draft", "collecting", "ready", "voting", "sent"],
   })
     .notNull()
     .default("draft"),
@@ -90,6 +90,31 @@ export const reservationAvailability = sqliteTable("reservation_availability", {
   availableTimesJson: text("available_times_json").notNull(),
   bookUrl: text("book_url").notNull(),
   checkedAt: integer("checked_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const planResults = sqliteTable("plan_results", {
+  id: text("id").primaryKey(),
+  planId: text("plan_id")
+    .notNull()
+    .references(() => hangoutPlans.id, { onDelete: "cascade" }),
+  optionsJson: text("options_json").notNull(),
+  generatedAt: integer("generated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const optionVotes = sqliteTable("option_votes", {
+  id: text("id").primaryKey(),
+  planId: text("plan_id")
+    .notNull()
+    .references(() => hangoutPlans.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  optionId: text("option_id").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
 });

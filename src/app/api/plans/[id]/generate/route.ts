@@ -28,7 +28,7 @@ export async function POST(
       status: "voting",
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Suggestion failed";
+    const message = error instanceof Error ? error.message : "Generation failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

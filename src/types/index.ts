@@ -66,3 +66,15 @@ export interface PlanPreferences {
   notes?: string;
   eveningOnly?: boolean;
 }
+
+export interface VotableOption {
+  id: string;
+  label: string;
+  description?: string;
+  slotStart?: string;
+  slotEnd?: string;
+  activityType?: "restaurant" | "event" | "general";
+  bookUrl?: string;
+  eventUrl?: string;
+  reservationTimes?: string[];
+}
