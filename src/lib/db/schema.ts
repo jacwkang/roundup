@@ -33,6 +33,7 @@ export const hangoutPlans = sqliteTable("hangout_plans", {
   })
     .notNull()
     .default("draft"),
+  shareToken: text("share_token").notNull().unique(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -45,7 +46,8 @@ export const participants = sqliteTable("participants", {
     .references(() => hangoutPlans.id, { onDelete: "cascade" }),
   userId: text("user_id").references(() => users.id),
   email: text("email").notNull(),
-  inviteToken: text("invite_token").notNull().unique(),
+  preferencesJson: text("preferences_json").default("{}"),
+  inviteToken: text("invite_token"),
   status: text("status", { enum: ["invited", "connected"] })
     .notNull()
     .default("invited"),

@@ -1,3 +1,5 @@
+import type { BusyBlock } from "@/types";
+
 export interface FreeWindow {
   start: Date;
   end: Date;

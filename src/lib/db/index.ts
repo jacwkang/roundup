@@ -51,6 +51,7 @@ function migrate(sqlite: Database.Database) {
       min_duration_minutes INTEGER NOT NULL DEFAULT 120,
       preferences_json TEXT DEFAULT '{}',
       status TEXT NOT NULL DEFAULT 'draft',
+      share_token TEXT NOT NULL UNIQUE,
       created_at INTEGER NOT NULL
     );
 
@@ -59,7 +60,8 @@ function migrate(sqlite: Database.Database) {
       plan_id TEXT NOT NULL REFERENCES hangout_plans(id) ON DELETE CASCADE,
       user_id TEXT REFERENCES users(id),
       email TEXT NOT NULL,
-      invite_token TEXT NOT NULL UNIQUE,
+      preferences_json TEXT DEFAULT '{}',
+      invite_token TEXT,
       status TEXT NOT NULL DEFAULT 'invited',
       created_at INTEGER NOT NULL
     );
@@ -130,7 +132,32 @@ function migrate(sqlite: Database.Database) {
 
     CREATE UNIQUE INDEX IF NOT EXISTS option_votes_unique
       ON option_votes(plan_id, user_id, option_id);
+
+    CREATE UNIQUE INDEX IF NOT EXISTS participants_plan_user
+      ON participants(plan_id, user_id);
   `);
+
+  try {
+    sqlite.exec(`ALTER TABLE hangout_plans ADD COLUMN share_token TEXT`);
+  } catch {
+    /* column exists */
+  }
+  try {
+    sqlite.exec(`ALTER TABLE participants ADD COLUMN preferences_json TEXT DEFAULT '{}'`);
+  } catch {
+    /* column exists */
+  }
+
+  const plansMissingToken = sqlite
+    .prepare(`SELECT id FROM hangout_plans WHERE share_token IS NULL OR share_token = ''`)
+    .all() as { id: string }[];
+
+  for (const plan of plansMissingToken) {
+    const token = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+    sqlite
+      .prepare(`UPDATE hangout_plans SET share_token = ? WHERE id = ?`)
+      .run(token, plan.id);
+  }
 }
 
 export { schema };

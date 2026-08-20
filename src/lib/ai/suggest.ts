@@ -6,6 +6,7 @@ import type {
   ReservationSlot,
   SuggestionResult,
   PlanPreferences,
+  ActivitySuggestion,
 } from "@/types";
 
 const SYSTEM_PROMPT = `You are a friendly hangout planning assistant. Given mutual free time slots, popular restaurants, local events, and reservation availability, suggest the best hangout options.
@@ -142,15 +143,31 @@ function buildFallbackSuggestions(input: {
     rankedSlots: input.slots,
     activities,
     emailSubject: `Let's hang out in ${input.city}!`,
-    emailBodyMarkdown: buildDefaultEmailBody(input),
+    emailBodyMarkdown: buildDefaultEmailBody({ ...input, activities }),
   };
 }
 
 function buildDefaultEmailBody(input: {
   slots: TimeSlot[];
   city: string;
-  activities: SuggestionResult["activities"];
-} & { restaurants: Restaurant[]; events: LocalEvent[]; reservations: ReservationSlot[] }): string {
+  restaurants: Restaurant[];
+  events: LocalEvent[];
+  reservations: ReservationSlot[];
+  activities?: SuggestionResult["activities"];
+}): string {
+  const activities: ActivitySuggestion[] =
+    input.activities ??
+    input.reservations.slice(0, 2).map((res) => ({
+      type: "restaurant" as const,
+      title: `Dinner at ${res.venueName}`,
+      why: `Tables at ${res.times.join(", ")}`,
+      slotIndex: 0,
+      reservation: {
+        provider: res.provider,
+        times: res.times,
+        bookUrl: res.bookUrl,
+      },
+    }));
   const slotLines = input.slots.slice(0, 3).map((s, i) => {
     const start = new Date(s.start).toLocaleString("en-US", {
       weekday: "long",
@@ -162,7 +179,7 @@ function buildDefaultEmailBody(input: {
     return `**Option ${i + 1}:** ${start} — {respond_link_${i + 1}}`;
   });
 
-  const activityLines = input.activities.slice(0, 4).map((a) => {
+  const activityLines = activities.slice(0, 4).map((a) => {
     if (a.reservation) {
       return `- **${a.title}** — ${a.why} [Book here](${a.reservation.bookUrl})`;
     }

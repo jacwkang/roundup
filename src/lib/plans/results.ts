@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { getDb } from "@/lib/db";
 import { planResults, optionVotes, hangoutPlans } from "@/lib/db/schema";

@@ -124,6 +124,22 @@ export async function runFullSuggestionPipeline(planId: string) {
 
   const { plan, participants: planParticipants } = data;
   const preferences = JSON.parse(plan.preferencesJson ?? "{}") as PlanPreferences;
+  const participantNotes = planParticipants
+    .filter((p) => p.status === "connected" && p.preferencesJson)
+    .map((p) => {
+      try {
+        const prefs = JSON.parse(p.preferencesJson ?? "{}") as { notes?: string };
+        return prefs.notes?.trim();
+      } catch {
+        return undefined;
+      }
+    })
+    .filter(Boolean) as string[];
+
+  const mergedPreferences: PlanPreferences = {
+    ...preferences,
+    notes: [preferences.notes, ...participantNotes].filter(Boolean).join("; ") || undefined,
+  };
 
   let slots = await getLatestSlots(planId);
   if (slots.length === 0) {
@@ -138,7 +154,7 @@ export async function runFullSuggestionPipeline(planId: string) {
     plan.city,
     plan.dateRangeStart,
     plan.dateRangeEnd,
-    preferences,
+    mergedPreferences,
     slotStarts
   );
 
@@ -154,7 +170,7 @@ export async function runFullSuggestionPipeline(planId: string) {
     slots,
     groupSize: partySize,
     city: plan.city,
-    preferences,
+    preferences: mergedPreferences,
     restaurants,
     events,
     reservations,
