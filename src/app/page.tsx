@@ -1,61 +1,23 @@
-import { auth, signIn } from "@/lib/auth";
-import Link from "next/link";
-
-export default async function HomePage() {
-  const session = await auth();
-
+export default function HomePage() {
   return (
-    <div className="space-y-8">
-      <section className="space-y-4 pt-8">
-        <h1 className="text-4xl font-bold tracking-tight">
-          Plan hangouts that actually happen
-        </h1>
-        <p className="text-lg text-muted max-w-xl">
-          Create a plan, share one link in your group chat, and let friends sign in
-          and vote on hangout options.
-        </p>
+    <div className="space-y-12">
+      <section className="space-y-5">
+        <p className="text-sm font-medium text-accent">Meet Ara</p>
+        <h1 className="text-5xl font-semibold tracking-tight leading-tight">Good plans start<br />in the group chat.</h1>
+        <p className="max-w-xl text-lg leading-relaxed text-muted">A companion for getting your friends together, right where you already talk.</p>
       </section>
-
-      <section className="rounded-xl border border-border bg-card p-6 space-y-4">
-        <h2 className="font-semibold">How it works</h2>
-        <ol className="list-decimal list-inside space-y-2 text-muted text-sm sm:text-base">
-          <li>Create a plan with city and dates (coordinator view)</li>
-          <li>Copy the invite link into your group chat</li>
-          <li>Friends sign in with Google and share preferences</li>
-          <li>Tap <strong>Generate options</strong> when enough people have joined</li>
-          <li>Everyone votes on the same link</li>
-        </ol>
+      <section className="rounded-2xl border border-border bg-card p-8 space-y-5">
+        <h2 className="text-xl font-semibold">The first step: say hello.</h2>
+        <p className="text-muted leading-relaxed">Ara is in an early messaging pilot. Once your group is connected, address Ara by name to check that it can hear you.</p>
+        <div className="rounded-xl bg-background p-5 space-y-3">
+          <p className="text-sm font-medium">You</p>
+          <p>Ara, are you there?</p>
+          <p className="text-sm font-medium text-accent pt-3">Ara</p>
+          <p>I’m here! I can receive and reply in this group.</p>
+        </div>
+        <p className="text-sm text-muted">Planning, AI conversations, and restaurant bookings are coming next. This pilot only tests messaging.</p>
       </section>
-
-      {session?.user ? (
-        <Link
-          href="/plans/new"
-          className="inline-block rounded-lg bg-accent px-6 py-3 font-medium text-white hover:bg-accent-hover"
-        >
-          Create a hangout plan
-        </Link>
-      ) : (
-        <form
-          action={async () => {
-            "use server";
-            await signIn("google");
-          }}
-        >
-          <button
-            type="submit"
-            className="rounded-lg bg-accent px-6 py-3 font-medium text-white hover:bg-accent-hover"
-          >
-            Get started with Google
-          </button>
-        </form>
-      )}
-
-      <p className="text-xs text-muted">
-        We only read free/busy calendar data — not your event details.{" "}
-        <Link href="/privacy" className="underline">
-          Privacy
-        </Link>
-      </p>
+      <p className="text-sm text-muted">Joining a pilot? Ask your organizer for Ara’s number and the connected group. No app or sign-in needed.</p>
     </div>
   );
 }

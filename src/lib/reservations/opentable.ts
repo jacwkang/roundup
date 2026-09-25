@@ -1,1 +1,0 @@
-export { fetchOpenTableAvailability } from "./resy";

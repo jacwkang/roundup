@@ -1,5 +1,5 @@
 {
-  "name": "hangout-planner",
+  "name": "ara",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -9,25 +9,22 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "worker": "tsx scripts/worker.ts",
+    "queue": "tsx scripts/queue.ts",
+    "test:smoke": "tsx scripts/smoke.ts",
+    "typecheck": "tsc --noEmit",
+    "sendblue": "tsx scripts/sendblue.ts"
   },
   "dependencies": {
+    "@next/env": "^15.5.12",
     "better-sqlite3": "^12.11.1",
-    "drizzle-orm": "^0.39.3",
-    "googleapis": "^148.0.0",
-    "jose": "^6.0.10",
     "next": "^15.2.4",
-    "next-auth": "^5.0.0-beta.25",
-    "openai": "^4.89.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "uuid": "^11.1.0",
+    "tsx": "^4.23.15",
     "zod": "^3.24.2"
   },
   "devDependencies": {
@@ -36,8 +33,6 @@
     "@types/node": "^22.13.10",
     "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4",
-    "@types/uuid": "^10.0.0",
-    "drizzle-kit": "^0.30.5",
     "eslint": "^9.22.0",
     "eslint-config-next": "^15.2.4",
     "tailwindcss": "^4.0.17",
