@@ -8,7 +8,7 @@ import { makeReply } from "./reply";
 export type Job = {
   seq: number; event_id: string; message_id: string; chat_id: string; sender: string;
   body: string; response: string | null; attempts: number; lease_token: string;
-  state: string; last_error: string | null;
+  state: string; last_error: string | null; created_at: number; sent_at: string;
 };
 
 export class Store {
@@ -43,6 +43,8 @@ export class Store {
       );
       CREATE INDEX IF NOT EXISTS messages_chat_order ON messages(chat_id, seq);
     `);
+    const columns = this.db.prepare("PRAGMA table_info(messages)").all() as { name: string }[];
+    if (!columns.some(c => c.name === "completed_at")) this.db.exec("ALTER TABLE messages ADD COLUMN completed_at INTEGER");
   }
   close() { this.db.close(); }
   enqueue(input: Incoming): boolean {
@@ -53,7 +55,7 @@ export class Store {
         .run(input.eventId, input.messageId, input.chatId, input.sender, input.text, input.sentAt, input.service, Date.now()).changes > 0;
     })();
   }
-  claim(now = Date.now()): Job | undefined {
+  claim(now = Date.now(), defaultReply = true): Job | undefined {
     return this.db.transaction(() => {
       // A crashed sender could have reached the provider. Hold it for reconciliation.
       this.db.prepare("UPDATE messages SET state='unknown',last_error='send_interrupted' WHERE state='sending' AND lease_until<=?").run(now);
@@ -64,17 +66,30 @@ export class Store {
         ORDER BY seq LIMIT 1`).get(now, now) as Job | undefined;
       if (!row) return undefined;
       const chat = this.db.prepare("SELECT introduced FROM chats WHERE id=?").get(row.chat_id) as { introduced: number };
-      const response = row.response ?? makeReply(row.body, Boolean(chat.introduced));
+      const response = row.response ?? (defaultReply ? makeReply(row.body, Boolean(chat.introduced)) : null);
       const lease = randomUUID();
       this.db.prepare(`UPDATE messages SET state='processing', response=?, attempts=attempts+1, lease_until=?, lease_token=? WHERE seq=?`)
         .run(response, now + 60000, lease, row.seq);
       return { ...row, response, lease_token: lease, attempts: row.attempts + 1, state: "processing" };
     }).immediate();
   }
+  renew(job: Job) {
+    return this.db.prepare("UPDATE messages SET lease_until=? WHERE seq=? AND lease_token=? AND state='processing' AND lease_until>?")
+      .run(Date.now() + 60000, job.seq, job.lease_token, Date.now()).changes > 0;
+  }
+  saveReply(job: Job, response: string | null) {
+    return this.db.prepare("UPDATE messages SET response=? WHERE seq=? AND lease_token=? AND state='processing' AND lease_until>?")
+      .run(response, job.seq, job.lease_token, Date.now()).changes > 0;
+  }
+  history(job: Job) {
+    return (this.db.prepare(`SELECT seq,sender,body,response,sent_at FROM messages
+      WHERE chat_id=? AND seq<=? ORDER BY seq DESC LIMIT 30`).all(job.chat_id, job.seq) as
+      { seq: number; sender: string; body: string; response: string | null; sent_at: string }[]).reverse();
+  }
   complete(job: Job, providerId?: string) {
     this.db.transaction(() => {
-      const result = this.db.prepare(`UPDATE messages SET state='done',provider_message_id=?,last_error=NULL
-        WHERE seq=? AND lease_token=? AND state IN ('processing','sending')`).run(providerId ?? null, job.seq, job.lease_token);
+      const result = this.db.prepare(`UPDATE messages SET state='done',provider_message_id=?,last_error=NULL,completed_at=?
+        WHERE seq=? AND lease_token=? AND state IN ('processing','sending')`).run(providerId ?? null, Date.now(), job.seq, job.lease_token);
       if (result.changes && providerId) this.db.prepare("UPDATE chats SET introduced=1 WHERE id=?").run(job.chat_id);
     })();
   }
@@ -92,7 +107,7 @@ export class Store {
       const row = this.db.prepare("SELECT chat_id FROM messages WHERE seq=? AND state='unknown'").get(seq) as { chat_id: string } | undefined;
       if (!row) return 0;
       if (outcome === "sent") {
-        this.db.prepare("UPDATE messages SET state='done',provider_message_id=?,last_error=NULL WHERE seq=?").run(providerId!, seq);
+        this.db.prepare("UPDATE messages SET state='done',provider_message_id=?,last_error=NULL,completed_at=? WHERE seq=?").run(providerId!, Date.now(), seq);
         this.db.prepare("UPDATE chats SET introduced=1 WHERE id=?").run(row.chat_id);
       } else {
         this.db.prepare("UPDATE messages SET state='queued',attempts=0,available_at=0,last_error=NULL WHERE seq=?").run(seq);

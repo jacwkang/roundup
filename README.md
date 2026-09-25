@@ -135,6 +135,22 @@ Validate the following with an actual Sendblue number before marking M1 complete
 
 The [Linq Resy agent](https://github.com/linq-team/linq-resy-agent) remains a historical reference for the Resy tool-use pattern in M2, not a messaging dependency. The existing M1 implementation uses Sendblue exclusively and does not call Linq.
 
+## API-first browser fallback
+
+Preserve the existing integration and prefer an official supported API wherever available. If an API read fails, escalate only as far as needed:
+
+**Official API when available → deterministic Playwright → DOM inspection → small DOM summary to an LLM → screenshot/computer-use → human handoff.**
+
+Browser automation runs in **Steel cloud sessions**, isolated from the operator’s personal browser. Use the same external connection for Codex through the project MCP server. Routine navigation/extraction uses DOM and accessible controls; screenshots and model reasoning are bounded last resorts. Page contents are untrusted data. Login, verification challenges, unclear terms, and unsupported checkout screens require human handoff.
+
+Maintain the same booking owner, exact authorization, financial-term checks, durable attempt boundary, and real confirmation requirements across transports. Never retry an uncertain API booking through a browser. A browser result or handoff link is not a reservation. The existing Resy web endpoints are not established official partner access; browser support does not change that status.
+
+Availability handoffs must state that no booking was attempted; reserve uncertain-booking warnings for unresolved submissions. Browser inventory validation supports explicitly verified, venue-specific seating-label aliases while retaining exact date, time, party-size and inventory checks.
+
+See [current harness implementation](docs/HARNESS_IMPLEMENTATION.md) for the actual chat, API fallback, DOM inspection, browser control, quote, submission, and human-handoff flows.
+
+**Current implementation:** optional read-only API fallback, Steel session lifecycle, encrypted browser context, staged restaurant discovery, bounded DOM/vision interpretation, and Codex MCP tools. Read-only browser slots are validated for Balthazar using the exact rendered date, guest count, time and seating, without model calls or screenshots. Unsupported layouts hand off. A guarded operator diagnostic has reused the saved login and inspected the checkout cancellation policy. Browser checkout now has a narrow, locally parsed zero-upfront-payment/conditional-cancellation-fee contract, explicit quote-code fee acceptance, fresh term/account checks, a one-use submission gate, and provider confirmation parsing. Unsupported terms or missing payment evidence hand off. An explicitly authorized Mira reservation has now returned a real Resy confirmation through the guarded browser path. The API booking path remains in place. See [Steel setup and limits](docs/BROWSER_FALLBACK.md).
+
 ## Proposed architecture
 
 For V1, keep this in one application with durable storage and a small background processing path. The activity discovery adapter is Resy-only; structured availability and the reminder worker are deferred. A separate queue service or new production database is not a prerequisite if the pilot deployment can process persisted events reliably.
@@ -196,7 +212,9 @@ Set numerical launch targets after the initial pilot baseline. Duplicate booking
 
 **M1 is implemented and locally tested; two participants have confirmed live Sendblue replies, and the user has accepted M1 as working. The original third-sender check remains a follow-up.** The app now contains a secret-authenticated Sendblue webhook receiver, a durable SQLite message queue, an outbound worker, and a small Ara landing/privacy page. The former Google sign-in, calendar integration, organizer dashboard, invite links, voting, discovery, and reservation stubs have been removed from active code.
 
-M1 replies with deterministic connectivity messages when someone includes “Ara” in a message. It stores sender-aware text context but does not yet run an AI model, infer availability, or book anything. These capabilities remain in M2 and later milestones as specified above.
+With AI disabled, M1 replies with deterministic connectivity messages when someone includes “Ara”. The opt-in M2 implementation adds OpenAI interpretation, private encrypted Resy credentials, restaurant/slot tools, owner-authorized booking attempts, and reconciliation. Automated tests and a live OpenAI check pass. **Resy profile access is verified, but server-side search returns 403. Isolated Steel browser discovery has returned a real Balthazar venue link using DOM inspection without model calls or screenshots; read-only slots are also verified for two dates/party sizes. Saved-login reuse and the checkout screen have now been observed in Steel. The browser quote adapter has also passed a live terms-only check. It initially withheld booking for missing saved-payment evidence; after the owner added payment, a fresh live quote verified that evidence successfully. A controlled operator booking at Mira now passed browser submission and provider confirmation. The complete natural-language group-message booking flow still needs live acceptance testing, so M2 is not accepted yet.**
+
+**M2 setup: [private Resy connection and testing](docs/RESY_SETUP.md).** Enable AI and bookings separately. The initial booking adapter accepts only explicitly understood zero-upfront-payment, zero-cancellation-fee tables; other or unknown terms require a direct Resy handoff. The owner can approve a displayed quote with “Ara, book it”; the model cannot authorize a booking. Multi-region search, deposits/fee-bearing tables, and more flexible authorization phrasing need additional validated support. These limitations do not replace the target V1 acceptance criteria above.
 
 **Start here: [Sendblue setup and testing guide](docs/SENDBLUE_SETUP.md).** It covers account/number provisioning, the webhook subscription, group allowlisting, the two local processes, and a live test checklist.
 
@@ -211,7 +229,7 @@ npm run build
 
 The Sendblue smoke test uses temporary storage and a mock transport; it needs no credentials and sends no real messages. For a live test, configure `.env.local` from `.env.example`, then run `npm run dev` and `npm run worker` in separate terminals.
 
-Current stack: Next.js, React, TypeScript, SQLite (`better-sqlite3`), and a thin Sendblue HTTP adapter. The worker runs through `tsx`. Web and worker processes must share the same persistent database file. Stateless/serverless hosting alone is not supported by this pilot architecture.
+Current stack: Next.js, React, TypeScript, SQLite (`better-sqlite3`), and thin Sendblue, OpenAI Responses, and Resy HTTP adapters. The worker runs through `tsx`. Web and worker processes must share the same persistent database file. Stateless/serverless hosting alone is not supported by this pilot architecture.
 
 | Command | Purpose |
 | --- | --- |
@@ -224,10 +242,21 @@ Current stack: Next.js, React, TypeScript, SQLite (`better-sqlite3`), and a thin
 | `npm run queue -- retry SEQ` | Retry a known rejected send after fixing its cause |
 | `npm run queue -- resolve SEQ sent HANDLE` | Mark an uncertain send as confirmed after provider verification |
 | `npm run queue -- resolve SEQ not-sent` | Requeue only after verifying the provider did not send it |
-| `npm test` | Automated messaging/queue tests |
+| `npm run resy -- init-key` / `connect` / `check` | Private Resy setup and read-only verification |
+| `npm run resy -- status` / `reconcile` | Inspect and reconcile persisted booking attempts |
+| `npm run browser -- check` / `login` / `search Balthazar` | Isolated Steel browser setup and discovery diagnostics |
+| `npm run test:browser-mcp` | Local Codex MCP handshake; no cloud session |
+| `npm run test:ai` | Small live OpenAI check; no messages or bookings |
+| `npm test` | Automated messaging, AI orchestration, and booking safety tests |
 | `npm run test:smoke` | Three-sender ingestion → restart → mock outbound test |
 | `npm run typecheck` / `npm run lint` / `npm run build` | Static checks and production build |
 
 Older research and rollout documents live in `docs/archive/` as historical context. Before cleanup, the existing source (including local edits) was backed up to the ignored `data/legacy-backup/pre-m1-source.tar.gz`. The old database and `.env` were left untouched; Ara uses `ARA_DATABASE_PATH` (default `./data/ara-sendblue.db`) and ignores old Google and Linq settings. Do not reuse the old messaging database; startup rejects a legacy store to prevent replay across providers.
 
 See [EXECUTION_PLAN.md](EXECUTION_PLAN.md) for milestone status and the remaining live validation gate.
+
+Browser fee-bearing quotes require the connected owner to send `Ara, book QUOTECODE and I accept the displayed fees and cancellation terms` after Ara has delivered that exact quote. Plain “book it” cannot authorize a browser checkout. The approved quote binds the slot, saved browser account context, payment evidence and policy. Booking transport is chosen before mutation and is never retried through another transport. Unknown browser attempts require private Resy reconciliation; synthetic browser venue IDs are never used to match API reservations.
+
+Mira policy support: the guarded browser adapter also recognizes the observed zero-upfront, no-cancellation-charge policy asking guests to cancel at least 24 hours ahead. It requires the exact displayed policy and structured fee-null/zero-payment evidence; a missing fee alone never means free. The October 2, 2026 / 17:00 / two guests Dining Room slot was observed in checkout, with no submission. Exact-time operator diagnostics accept `--time=17:00` and never substitute a different time.
+
+Latest live result: the designated owner’s approved Mira reservation was confirmed through Steel/Playwright on September 25, 2026. The successful operator flow keeps fresh validation and final submission in the same session. Global live booking remains disabled; AI messaging is now enabled for the current pilot group; this controlled operator test does not by itself validate the complete group-message flow.
